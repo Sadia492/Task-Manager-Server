@@ -37,8 +37,12 @@ async function run() {
     // to post a user
     app.post("/users", async (req, res) => {
       const user = req.body;
-      const result = await usersCollection.insertOne(user);
-      res.send(result);
+      const query = { UserId: user.UserId };
+      const isExist = await usersCollection.findOne(query);
+      if (!isExist) {
+        const result = await usersCollection.insertOne(user);
+        res.send(result);
+      }
     });
 
     app.get("/users", async (req, res) => {
@@ -57,7 +61,7 @@ async function run() {
     });
 
     // PUT API to Update a Task
-    app.put("/tasks/:id", async (req, res) => {
+    app.patch("/tasks/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const taskData = req.body;
@@ -75,6 +79,20 @@ async function run() {
       const result = await tasksCollection.deleteOne(query);
       res.send(result);
     });
+
+    // app.post("/tasks/reorder", async (req, res) => {
+    //   const { reorderedTasks } = req.body;
+
+    //   const bulkOperations = reorderedTasks.map((task, index) => ({
+    //     updateOne: {
+    //       filter: { _id: task._id },
+    //       update: { $set: { index } },
+    //     },
+    //   }));
+
+    //   await TaskModel.bulkWrite(bulkOperations);
+    //   res.send({ success: true });
+    // });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
