@@ -9,7 +9,10 @@ const port = process.env.PORT || 9000;
 const app = express();
 const server = http.createServer(app); //  Create an HTTP server
 const io = new Server(server, {
-  cors: { origin: "http://localhost:5173" }, //  Ensure CORS matches frontend
+  cors: {
+    origin: "http://localhost:9000", // Update with your Firebase URL
+    methods: ["GET", "POST"],
+  },
 });
 
 app.use(cors());
@@ -56,6 +59,12 @@ app.get("/users", async (req, res) => {
   const result = await usersCollection.find().toArray();
   res.send(result);
 });
+app.get("/task/:email", async (req, res) => {
+  const email = req.params.email;
+  const query = { email: email };
+  const result = await tasksCollection.find(query).toArray();
+  res.send(result);
+});
 
 app.post("/tasks", async (req, res) => {
   const task = req.body;
@@ -92,6 +101,17 @@ app.delete("/tasks/:id", async (req, res) => {
   io.emit("tasksUpdated", await tasksCollection.find().toArray());
 });
 
+app.put("/tasks/:id", async (req, res) => {
+  const id = req.params.id;
+  const query = { _id: new ObjectId(id) };
+  const updatedDoc = { $set: req.body };
+  const result = await tasksCollection.updateOne(query, updatedDoc);
+  res.send(result);
+
+  // Emit real-time update
+  io.emit("tasksUpdated", await tasksCollection.find().toArray());
+});
+
 // WebSocket Events
 io.on("connection", (socket) => {
   console.log(" A user connected:", socket.id);
@@ -105,6 +125,10 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log(" A user disconnected:", socket.id);
   });
+});
+
+app.get("/", async (req, res) => {
+  res.send("task management server is running");
 });
 
 //  Ensure WebSockets work by using `server.listen()`, NOT `app.listen()`
